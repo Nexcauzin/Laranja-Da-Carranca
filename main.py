@@ -16,9 +16,9 @@ GPS = Sensor('GPS', '/dev/ttyS7', 9600, ['Hora', 'Latitude', 'Longitude', 'Altit
 
 
 # Ajuste os threadings de acordo com a classe
-t1 = threading.Thread(target=ARD_MEGA.leituras(diretorio))
-t2 = threading.Thread(target=GPS.leogepas(diretorio))
-t3 = threading.Thread(target=pegaAcelerometro(diretorio))
+t1 = threading.Thread(target=ARD_MEGA.leituras, args=(diretorio,))
+t2 = threading.Thread(target=GPS.leogepas, args=(diretorio,))
+t3 = threading.Thread(target=pegaAcelerometro, args=(diretorio,))
 
 t1.start()
 t2.start()
