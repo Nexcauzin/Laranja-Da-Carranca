@@ -12,7 +12,7 @@ diretorio = Sensor.verifica_diretorio()
 
 # Aqui que define os sensores
 ARD_MEGA = Sensor('ARD_MEGA', 'COM5', 9600, ['Velocidade_ASA', 'Velocidade_SH'])
-GPS = Sensor('GPS', '/dev/ttyS7', 9600, ['Hora', 'Latitude', 'Longitude', 'Altitude'])
+GPS = Sensor('GPS', '/dev/ttyS7', 9600, ['Hora', 'Latitude', 'Longitude', 'Altitude', 'Deslocamento'])
 
 
 # Ajuste os threadings de acordo com a classe

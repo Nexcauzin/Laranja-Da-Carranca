@@ -1,6 +1,6 @@
 import kalman_filter
-import smbus  # import SMBus module of I2C
-from time import sleep  # import
+import smbus
+from time import sleep  #
 import math
 
 # Variáveis para a conexão I2C

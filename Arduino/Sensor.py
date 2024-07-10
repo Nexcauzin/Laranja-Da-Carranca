@@ -1,20 +1,22 @@
 import csv, os, serial
 from datetime import datetime, timedelta
+from haversine import haversine, Unit
 
 class Sensor:
+    # Atributos da Classe
+    DIRETORIO = "Logs/"
+    HISTORICO_COORDENADAS = [[-9.326506, -40.470119], [[-9.326506, -40.470119]]] # Valores iniciais aleatórios, os 2 primeiros dados devem ser desconsiderados no tratamento
+
     def __init__(self, nome, porta, baud, colunas):
         self.nome = nome
         self.porta = porta
         self.baud = baud
         self.colunas = colunas
-        self.eoparas = False
-        
-    diretorio = "Logs/"
 
-    @classmethod
-    def verifica_diretorio(cls):
+    @staticmethod
+    def verifica_diretorio():
         num = 1
-        diretorio_atual = [cls.diretorio,num]
+        diretorio_atual = [Sensor.DIRETORIO, num]
         while os.path.exists(f"{diretorio_atual[0]}{diretorio_atual[1]}"):
             num+=1
             diretorio_atual[1] = num
@@ -25,20 +27,32 @@ class Sensor:
 
     def leituras(self, diretorio):
         with serial.Serial(self.porta, self.baud) as ser:
+            # O Try vem aqui
+            ser.set_buffer_size(rx_size=2048, tx_size=2048) # Isso aqui é apenas para teste, o rx_size e tx_size
             with open(f'{diretorio}/{self.nome}.csv', mode='w', newline='') as csv_file:
                 writer = csv.DictWriter(csv_file, fieldnames=self.colunas)
                 writer.writeheader()
 
-                while not self.eoparas:
+                while True:
                     leitura = ser.readline().strip()
                     dados = leitura.split(b',')
-                    dados_float = list(map(float, dados))
+                    dados_float = [float(dado) for dado in dados]
 
-                    row_data = dict(zip(self.colunas, dados_float))
+                    # Dict comprehension
+                    row_data = {coluna: dado_float for coluna, dado_float in zip(self.colunas, dados_float)}
+                    #row_data = dict(zip(self.colunas, dados_float)) # Forma que tava
                     print(row_data)
                     writer.writerow(row_data)
                     csv_file.flush()
+            # O except vem aqui
 
+    @staticmethod
+    def calcula_distancia(coord_input):
+        return haversine(coord_input[0], coord_input[1], unit=Unit.METERS)
+
+    @staticmethod
+    def circula_coordenada(coord_input):
+        return [coord_input[1], coord_input[0]]
 
     def converte_horario(self, time_gps):
         time_gps = datetime.strptime(time_gps, "%H%M%S.%f")
@@ -52,15 +66,14 @@ class Sensor:
 
         return tempo_brasil.strftime("%H:%M:%S")
 
-
     def leogepas(self, diretorio):
-
         with serial.Serial(self.porta, self.baud, timeout=1) as ser:
             with open(f'{diretorio}/{self.nome}.csv', mode='w', newline='') as csv_file:
                 writer = csv.DictWriter(csv_file, fieldnames=self.colunas)
                 writer.writeheader()
 
                 while True:
+                    #O Try vem aqui
                     leitura = ser.readline().decode('utf-8', errors="ignore").strip()
 
                     if leitura.startswith('$GPGGA'):
@@ -82,9 +95,19 @@ class Sensor:
                             altitude = dados[9]
 
                             hora = self.converte_horario(dados[1])
-                            gps = [hora, latitude, longitude, altitude]
 
-                            row_data = dict(zip(self.colunas, gps))
+                            Sensor.HISTORICO_COORDENADAS[1] = [latitude, longitude]
+                            deslocamento = Sensor.calcula_distancia(Sensor.HISTORICO_COORDENADAS)
+                            Sensor.HISTORICO_COORDENADAS = Sensor.circula_coordenada(Sensor.HISTORICO_COORDENADAS)
+
+                            gps = [hora, latitude, longitude, altitude, deslocamento]
+
+                            # Dict comprehension
+                            row_data = {coluna: dado for coluna, dado in zip(self.colunas, gps)}
+                            # row_data = dict(zip(self.colunas, gps)) # Forma que tava
+
                             print(row_data)
                             writer.writerow(row_data)
                             csv_file.flush()
+
+                    #O except vem aqui
